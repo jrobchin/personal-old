@@ -5,15 +5,43 @@ import '../styles/map.css';
 
 const ZOOM_SPEED = 0.1;
 
+const PINS = [
+  {
+    name: 'Toronto, Canada',
+    long: -79.6010328,
+    lat: 43.6565353,
+  },
+  {
+    name: 'Berlin, Germany',
+    long: 13.4050,
+    lat: 52.5200
+  },
+  {
+    name: 'New York, USA',
+    long: -74.0060,
+    lat: 40.7128
+  },
+  {
+    name: 'London, Canada',
+    long: -81.2453,
+    lat: 42.9849
+  },
+  {
+    name: 'London, Canada',
+    long: -81.2453,
+    lat: 42.9849
+  }
+];
+
 class Map extends Component {
   constructor(props) {
     super(props);
     this.state = {
       width: 0,
       height: 0,
-      scale: 100,
-      mapX: null,
-      mapY: null,
+      scale: 0,
+      mapX: 0,
+      mapY: 0,
     };
 
     this.container = React.createRef();
@@ -41,13 +69,26 @@ class Map extends Component {
 
   initMapState = () => {
     let { offsetWidth, offsetHeight } = this.container.current;
-    this.setState({
+
+    let state = {
       width: offsetWidth,
       height: offsetHeight,
-      mapX: offsetWidth / 2,
-      mapY: offsetHeight / 2,
-      scale: offsetHeight / 4.25,
-    });
+      scale: 186,
+      mapX: 380,
+      mapY: 220,
+    };
+
+    if (offsetWidth > 600) {
+      state.scale = 186;
+      state.mapX = 465;
+      state.mapY = 221;
+    } else if (offsetWidth > 992) {
+      state.scale = 186;
+      state.mapX = 544;
+      state.mapY = 229;
+    }
+
+    this.setState(state);
   }
   
   drawMap = async () => {
@@ -59,12 +100,15 @@ class Map extends Component {
     // Get params to draw the map
     var { width, height, scale, mapX, mapY } = this.state;
     
+    // Create map and svg groups
     var svg = d3.select('#map')
                 .attr('width', width)
                 .attr('height', height);
     svg.selectAll("*").remove();
-    var g = svg.append('g');
-                
+    var mapG = svg.append('g');
+    var pinG = svg.append('g');
+    
+    // Create projection and geopath
     var projection = d3.geoMercator()
                        .scale(scale)
                        .center([0, 42])
@@ -72,13 +116,38 @@ class Map extends Component {
     var geoPath = d3.geoPath()
                  .projection(projection);
     
-    g.selectAll('path')
-     .data(this.geoJson.features)
-     .enter()
-     .append('path')
-     .attr('fill', '#ccc')
-     .attr('d', geoPath);
+    // Transform pins to coordinates
+    let pins = PINS.map(pin => {
+      let coords = projection([pin.long, pin.lat]);
+      return {
+        ...pins,
+        x: coords[0],
+        y: coords[1]
+      };
+    });
 
+    // Draw paths
+    mapG.selectAll('path')
+        .data(this.geoJson.features)
+        .enter()
+        .append('path')
+        .attr('fill', '#d6d6b1')
+
+        .attr('d', geoPath);
+
+    // Draw pins
+    pinG.selectAll('circle')
+        .data(pins)
+        .enter()
+        .append('circle')
+        .attr('r', 4)
+        .attr('fill', '#3d5a6c')
+        .attr('cx', (d, i) => {
+          return d.x;
+        })
+        .attr('cy', (d, i) => {
+          return d.y;
+        });
   }
 
   zoom = (amount) => {
@@ -130,17 +199,23 @@ class Map extends Component {
 
   render() { 
     return (
-      <div id="map-container" ref={this.container}>
-        <svg 
-          id="map"
-          onMouseDown={this.onMouseDown}
-          onMouseMove={this.onMouseMove}
-          onMouseUp={() => { this.mouse.dragging = false }}
-          onMouseLeave={() => { this.mouse.dragging = false }}
-          onWheel={this.onWheel}
-          onDoubleClick={this.onDoubleClick}
-        >
-        </svg>
+      <div>
+        <div id="map-container" ref={this.container}>
+          <svg 
+            id="map"
+            onMouseDown={this.onMouseDown}
+            onMouseMove={this.onMouseMove}
+            onMouseUp={() => { this.mouse.dragging = false }}
+            onMouseLeave={() => { this.mouse.dragging = false }}
+            onWheel={this.onWheel}
+            onDoubleClick={this.onDoubleClick}
+          >
+          </svg>
+        </div>
+        <div>
+          <p>mapX: {this.state.mapX}, mapY: {this.state.mapY}</p>
+          <p>scale: {this.state.scale}</p>
+        </div>
       </div>
     );
   }

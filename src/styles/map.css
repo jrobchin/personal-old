@@ -1,6 +1,7 @@
 #map-container {
-  height: 80vh;
-  width: 90vw;
+  height: 60vh;
+  width: 95vw;
+  max-width: 1024px;
   margin: auto;
   position: relative;
 }
